@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PROBLEMS } from "@/lib/problems";
+import { HISTORY_KEY, type HistoryEntry } from "@/lib/types";
 
 const DURATIONS = [30, 45, 60];
 
@@ -17,6 +18,20 @@ export default function Home() {
   const [problemId, setProblemId] = useState(PROBLEMS[0].id);
   const [duration, setDuration] = useState(45);
   const [starting, setStarting] = useState(false);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  useEffect(() => {
+    try {
+      setHistory(JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]"));
+    } catch {
+      // corrupted or unavailable storage — start fresh
+    }
+  }, []);
+
+  const clearHistory = () => {
+    localStorage.removeItem(HISTORY_KEY);
+    setHistory([]);
+  };
 
   const start = () => {
     setStarting(true);
@@ -118,6 +133,64 @@ export default function Home() {
           are never stored.
         </p>
       </section>
+
+      {history.length > 0 && (
+        <section className="mt-14">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">
+              Past interviews{" "}
+              <span className="font-normal normal-case">
+                (saved on this device only)
+              </span>
+            </h2>
+            <button
+              onClick={clearHistory}
+              className="text-xs text-muted underline-offset-2 hover:text-sub hover:underline"
+            >
+              Clear history
+            </button>
+          </div>
+          <div className="flex flex-col gap-2">
+            {history.map((h) => {
+              const hired = h.report.decision === "HIRE";
+              return (
+                <div
+                  key={h.id}
+                  className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-hairline bg-surface px-4 py-3"
+                >
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-xs font-bold ${
+                      hired
+                        ? "border-good/50 bg-good/15 text-good"
+                        : "border-critical/50 bg-critical/15 text-critical"
+                    }`}
+                  >
+                    {hired ? "HIRE" : "NO HIRE"}
+                  </span>
+                  <span className="font-medium">{h.problemTitle}</span>
+                  <span className="text-sm text-muted">
+                    {new Date(h.date).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                    })}{" "}
+                    · {h.durationMin} min
+                  </span>
+                  <span className="ml-auto flex items-center gap-3 font-mono text-sm tabular-nums text-sub">
+                    <span title="Coding score">
+                      <span className="mr-1 inline-block h-2 w-2 rounded-sm bg-accent" />
+                      {h.report.codingScore}
+                    </span>
+                    <span title="Communication score">
+                      <span className="mr-1 inline-block h-2 w-2 rounded-sm bg-aqua" />
+                      {h.report.communicationScore}
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </main>
   );
 }

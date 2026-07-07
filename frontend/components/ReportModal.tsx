@@ -1,7 +1,49 @@
 "use client";
 
-import type { Problem } from "@/lib/problems";
-import type { FeedbackSection, Report } from "@/lib/types";
+import { useState } from "react";
+import type { Language, Problem } from "@/lib/problems";
+import type { FeedbackSection, Report, TranscriptSegment } from "@/lib/types";
+
+function buildMarkdown(
+  report: Report,
+  problem: Problem,
+  finalCode: string,
+  language: Language,
+  transcript: TranscriptSegment[],
+): string {
+  const section = (title: string, fb: FeedbackSection) =>
+    `### ${title}\n\n**Strengths**\n${fb.strengths.map((s) => `- ${s}`).join("\n") || "- (none captured)"}\n\n**Improvements**\n${fb.improvements.map((s) => `- ${s}`).join("\n") || "- (none captured)"}\n`;
+  const convo = transcript
+    .filter((s) => s.final || s.text.trim())
+    .map((s) => `**${s.speaker === "interviewer" ? "Alex" : "You"}:** ${s.text.trim()}`)
+    .join("\n\n");
+  return [
+    `# Interview Report — ${problem.title}`,
+    `_${new Date().toLocaleString()}_`,
+    ``,
+    `## Verdict: ${report.decision === "HIRE" ? "HIRE ✅" : "NO HIRE ❌"}`,
+    ``,
+    `| Metric | Score |`,
+    `|---|---|`,
+    `| Coding | ${report.codingScore} / 100 |`,
+    `| Communication | ${report.communicationScore} / 100 |`,
+    `| Hints used | ${report.hintsUsed} |`,
+    ``,
+    `## Committee summary`,
+    report.summary || "(none)",
+    ``,
+    section("Coding feedback", report.codingFeedback),
+    section("Communication feedback", report.communicationFeedback),
+    `## Final code (${language})`,
+    "```" + language,
+    finalCode.trimEnd() || "(editor was empty)",
+    "```",
+    ``,
+    `## Conversation transcript`,
+    convo || "(no speech captured)",
+    ``,
+  ].join("\n");
+}
 
 /* Score meter — stat tile with a thin 8px bar, 4px rounded data-end,
    validated dark-surface series hues (blue / aqua), text in ink tokens. */
@@ -81,13 +123,31 @@ function FeedbackList({
 export default function ReportModal({
   report,
   problem,
+  finalCode,
+  language,
+  transcript,
   onDone,
 }: {
   report: Report;
   problem: Problem;
+  finalCode: string;
+  language: Language;
+  transcript: TranscriptSegment[];
   onDone: () => void;
 }) {
   const hire = report.decision === "HIRE";
+  const [showCode, setShowCode] = useState(false);
+
+  const download = () => {
+    const md = buildMarkdown(report, problem, finalCode, language, transcript);
+    const blob = new Blob([md], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `interview-report-${problem.id}-${new Date().toISOString().slice(0, 10)}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-page/95 p-4 backdrop-blur-sm">
@@ -150,7 +210,29 @@ export default function ReportModal({
           />
         </div>
 
-        <div className="flex justify-end gap-3">
+        {/* Final code */}
+        <div className="mb-8 rounded-xl border border-hairline bg-raised">
+          <button
+            onClick={() => setShowCode((v) => !v)}
+            className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold"
+          >
+            <span>Your final code ({language})</span>
+            <span className="text-muted">{showCode ? "▾ hide" : "▸ show"}</span>
+          </button>
+          {showCode && (
+            <pre className="max-h-64 overflow-auto border-t border-hairline px-4 py-3 font-mono text-xs leading-relaxed text-sub">
+              {finalCode.trimEnd() || "(editor was empty)"}
+            </pre>
+          )}
+        </div>
+
+        <div className="flex flex-wrap justify-end gap-3">
+          <button
+            onClick={download}
+            className="rounded-xl border border-hairline px-5 py-3 text-sm font-semibold text-sub transition-colors hover:border-muted hover:text-ink"
+          >
+            ⬇ Download report (.md)
+          </button>
           <button
             onClick={onDone}
             className="rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-accentDeep"

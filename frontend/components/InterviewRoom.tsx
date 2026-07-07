@@ -11,15 +11,20 @@ import {
 import { ConnectionState, RoomEvent } from "livekit-client";
 import type { Language, Problem } from "@/lib/problems";
 import {
+  HISTORY_KEY,
   TOPIC_CODE_UPDATE,
   TOPIC_CONTROL,
   TOPIC_REPORT,
+  TOPIC_TRANSCRIPTION,
+  type HistoryEntry,
   type Report,
+  type TranscriptSegment,
 } from "@/lib/types";
 import EditorPanel from "./EditorPanel";
 import ProblemPanel from "./ProblemPanel";
 import ReportModal from "./ReportModal";
 import Timer from "./Timer";
+import TranscriptPanel from "./TranscriptPanel";
 
 type Phase = "live" | "ending" | "report";
 
@@ -50,6 +55,9 @@ export default function InterviewRoom({
   const [phase, setPhase] = useState<Phase>("live");
   const [report, setReport] = useState<Report | null>(null);
   const [reportTimedOut, setReportTimedOut] = useState(false);
+  const [leftTab, setLeftTab] = useState<"problem" | "transcript">("problem");
+  const [segments, setSegments] = useState<TranscriptSegment[]>([]);
+  const [unseenSpeech, setUnseenSpeech] = useState(false);
 
   const warnedRef = useRef(false);
   const endedRef = useRef(false);
@@ -118,6 +126,60 @@ export default function InterviewRoom({
     }
   }, [connected, publish]);
 
+  // Live transcript: LiveKit streams every utterance (yours and Alex's) as
+  // text on the built-in transcription topic.
+  useEffect(() => {
+    const r = room as unknown as {
+      registerTextStreamHandler?: (
+        topic: string,
+        cb: (reader: AsyncIterable<string> & { info?: { id?: string; attributes?: Record<string, string> } }, participant?: { identity?: string }) => void,
+      ) => void;
+      unregisterTextStreamHandler?: (topic: string) => void;
+    };
+    if (!r.registerTextStreamHandler) return;
+
+    try {
+      r.registerTextStreamHandler(TOPIC_TRANSCRIPTION, async (reader, participant) => {
+        const attrs = reader.info?.attributes ?? {};
+        const id =
+          attrs["lk.segment_id"] ?? reader.info?.id ?? Math.random().toString(36).slice(2);
+        const speaker: TranscriptSegment["speaker"] =
+          participant?.identity === room.localParticipant.identity ? "you" : "interviewer";
+        let text = "";
+        try {
+          for await (const chunk of reader) {
+            text += chunk;
+            const snapshot = text;
+            setSegments((prev) => {
+              const idx = prev.findIndex((s) => s.id === id);
+              const seg: TranscriptSegment = {
+                id,
+                speaker,
+                text: snapshot,
+                final: attrs["lk.transcription_final"] === "true",
+                at: Date.now(),
+              };
+              if (idx === -1) return [...prev, seg];
+              const next = prev.slice();
+              next[idx] = { ...next[idx], text: snapshot, final: seg.final };
+              return next;
+            });
+          }
+        } catch {
+          // stream aborted mid-utterance — keep what we have
+        }
+        if (speaker === "interviewer") setUnseenSpeech(true);
+      });
+    } catch {
+      // another handler already registered — transcript just won't render
+    }
+    return () => {
+      try {
+        r.unregisterTextStreamHandler?.(TOPIC_TRANSCRIPTION);
+      } catch {}
+    };
+  }, [room]);
+
   // Receive the performance report from the agent.
   useEffect(() => {
     const onData = (
@@ -131,6 +193,27 @@ export default function InterviewRoom({
         const parsed = JSON.parse(new TextDecoder().decode(payload)) as Report;
         setReport(parsed);
         setPhase("report");
+        // Persist to this device's interview history (localStorage only —
+        // nothing leaves the browser).
+        try {
+          const entry: HistoryEntry = {
+            id: Math.random().toString(36).slice(2, 10),
+            date: new Date().toISOString(),
+            problemId: problem.id,
+            problemTitle: problem.title,
+            durationMin,
+            report: parsed,
+          };
+          const prev: HistoryEntry[] = JSON.parse(
+            localStorage.getItem(HISTORY_KEY) ?? "[]",
+          );
+          localStorage.setItem(
+            HISTORY_KEY,
+            JSON.stringify([entry, ...prev].slice(0, 20)),
+          );
+        } catch {
+          // private browsing / quota — history is best-effort
+        }
       } catch (err) {
         console.error("unparseable report payload", err);
       }
@@ -255,8 +338,38 @@ export default function InterviewRoom({
 
       {/* ── Split workspace ────────────────────────────────────────────── */}
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(360px,42%)_1fr]">
-        <div className="min-h-0 overflow-y-auto border-b border-hairline lg:border-b-0 lg:border-r">
-          <ProblemPanel problem={problem} />
+        <div className="flex min-h-0 flex-col border-b border-hairline lg:border-b-0 lg:border-r">
+          <div className="flex h-10 shrink-0 items-center gap-1 border-b border-hairline bg-surface px-3">
+            <button
+              onClick={() => setLeftTab("problem")}
+              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                leftTab === "problem" ? "bg-raised text-ink" : "text-muted hover:text-sub"
+              }`}
+            >
+              Problem
+            </button>
+            <button
+              onClick={() => {
+                setLeftTab("transcript");
+                setUnseenSpeech(false);
+              }}
+              className={`relative rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                leftTab === "transcript" ? "bg-raised text-ink" : "text-muted hover:text-sub"
+              }`}
+            >
+              Transcript
+              {unseenSpeech && leftTab !== "transcript" && (
+                <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-accent" />
+              )}
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {leftTab === "problem" ? (
+              <ProblemPanel problem={problem} />
+            ) : (
+              <TranscriptPanel segments={segments} />
+            )}
+          </div>
         </div>
         <div className="min-h-0">
           <EditorPanel
@@ -289,7 +402,14 @@ export default function InterviewRoom({
       )}
 
       {phase === "report" && report && (
-        <ReportModal report={report} problem={problem} onDone={leave} />
+        <ReportModal
+          report={report}
+          problem={problem}
+          finalCode={codeRef.current.code}
+          language={codeRef.current.language}
+          transcript={segments}
+          onDone={leave}
+        />
       )}
     </div>
   );
