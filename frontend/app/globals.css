@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  height: 100%;
+}
+
+/* Recessive scrollbars for the dark surface */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #383835 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #383835;
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Agent voice visualizer (LiveKit BarVisualizer) */
+.agent-viz {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 18px;
+  width: 40px;
+}
+.agent-viz .lk-audio-bar {
+  width: 4px;
+  min-height: 4px;
+  border-radius: 2px;
+  background: #383835;
+  transition: background-color 120ms ease;
+}
+.agent-viz .lk-audio-bar.lk-highlighted {
+  background: #3987e5;
+}
+
+/* LiveKit "click to enable audio" prompt */
+.lk-start-audio-button {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  background: #3987e5;
+  color: #ffffff;
+  border-radius: 9999px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.lk-start-audio-button[disabled],
+.lk-start-audio-button[data-lk-allowed="true"] {
+  display: none;
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+.animate-pulse-soft {
+  animation: pulse-soft 1.6s ease-in-out infinite;
+}
+
+@keyframes meter-fill {
+  from {
+    width: 0%;
+  }
+}
+.meter-fill {
+  animation: meter-fill 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}

@@ -1,0 +1,19 @@
+# deps
+node_modules/
+.venv/
+__pycache__/
+
+# builds
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# env — secrets never get committed
+.env
+.env.local
+.env*.local
+
+# misc
+.DS_Store
+*.log
