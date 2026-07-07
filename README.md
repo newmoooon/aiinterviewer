@@ -1,5 +1,7 @@
 # InterviewLab — Real-Time AI Technical Interviewer
 
+[![CI](https://github.com/newmoooon/aiinterviewer/actions/workflows/ci.yml/badge.svg)](https://github.com/newmoooon/aiinterviewer/actions/workflows/ci.yml)
+
 Practice live, high-pressure technical interviews with **Alex**, an AI interviewer
 that reads your code as you type, listens to you think out loud, interrupts with
 targeted engineering questions, nudges you when you stall, warns you at the
