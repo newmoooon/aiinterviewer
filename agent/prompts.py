@@ -131,6 +131,7 @@ def report_prompt(
     hints_used: int,
     duration_min: int,
     elapsed_min: float,
+    test_summary: str = "",
 ) -> str:
     return f"""
 You are the hiring-committee reviewer for a {duration_min}-minute technical
@@ -151,6 +152,9 @@ FULL SPOKEN TRANSCRIPT (Interviewer = the AI, Candidate = the human):
 {transcript or "(no speech was captured)"}
 
 HINTS THE INTERVIEWER GAVE: {hints_used}
+
+TEST-CASE EXECUTION (the editor let the candidate run real tests in-browser):
+{test_summary or "The candidate never ran the built-in test cases."}
 
 Score two independent dimensions from 0 to 100:
 1. codingScore — correctness of the final code against the problem, edge-case
@@ -185,3 +189,24 @@ Return ONLY a valid JSON object, no markdown fences, exactly this shape:
 Each strengths/improvements list must contain 2 to 4 concrete, specific items
 grounded in the transcript and code — never generic filler.
 """.strip()
+
+
+def test_results_reaction(summary_text: str, all_passed: bool) -> str:
+    if all_passed:
+        return (
+            "[SYSTEM EVENT] The candidate just ran the built-in test cases and every "
+            "one passed:\n"
+            f"{summary_text}\n"
+            "React like a real interviewer: acknowledge it briefly, then raise the "
+            "bar with ONE short follow-up — time/space complexity, a nastier edge "
+            "case, or whether they'd refactor anything. Two sentences maximum."
+        )
+    return (
+        "[SYSTEM EVENT] The candidate just ran the built-in test cases and some "
+        "failed:\n"
+        f"{summary_text}\n"
+        "React like a real interviewer: in one or two short sentences, note what the "
+        "failing cases have in common and nudge them toward investigating — WITHOUT "
+        "revealing the bug or the fix. Reference the failing case by its input if "
+        "helpful. Never read raw code or expected values aloud symbol by symbol."
+    )

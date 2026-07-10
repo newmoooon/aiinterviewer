@@ -10,11 +10,13 @@ import {
 } from "@livekit/components-react";
 import { ConnectionState, RoomEvent } from "livekit-client";
 import type { Language, Problem } from "@/lib/problems";
+import type { TestRunSummary } from "@/lib/judge";
 import {
   HISTORY_KEY,
   TOPIC_CODE_UPDATE,
   TOPIC_CONTROL,
   TOPIC_REPORT,
+  TOPIC_TEST_RESULTS,
   TOPIC_TRANSCRIPTION,
   type HistoryEntry,
   type Report,
@@ -238,6 +240,30 @@ export default function InterviewRoom({
     return () => clearTimeout(t);
   }, [phase]);
 
+  // Judge outcomes go straight to Alex: a compact pass/fail digest, never the
+  // raw code (the editor already streams separately).
+  const handleTestRun = useCallback(
+    (summary: TestRunSummary) => {
+      void publish(TOPIC_TEST_RESULTS, {
+        passed: summary.passed,
+        total: summary.total,
+        language: summary.language,
+        setupError: summary.setupError ?? null,
+        failures: summary.cases
+          .filter((c) => !c.pass)
+          .slice(0, 4)
+          .map((c) => ({
+            label: c.label,
+            expected: c.expected,
+            got: c.got,
+            error: c.error ?? null,
+          })),
+        at: Date.now(),
+      });
+    },
+    [publish],
+  );
+
   const handleCodeChange = useCallback(
     (code: string, language: Language) => {
       codeRef.current = { code, language };
@@ -375,6 +401,7 @@ export default function InterviewRoom({
           <EditorPanel
             problem={problem}
             onCodeChange={handleCodeChange}
+            onTestRun={handleTestRun}
             disabled={phase !== "live"}
           />
         </div>

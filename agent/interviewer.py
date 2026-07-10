@@ -45,6 +45,7 @@ REPORT_MODEL = os.getenv("GEMINI_REPORT_MODEL", "gemini-2.5-flash")
 VOICE = os.getenv("GEMINI_VOICE", "Puck")
 
 SILENCE_THRESHOLD_S = 15.0  # stuck flow: nudge after 15s of no voice + no typing
+TEST_REACTION_COOLDOWN_S = 20.0  # min gap between spoken reactions to test runs
 SILENCE_COOLDOWN_S = 30.0  # don't nudge again within 30s
 REVIEW_INTERVAL_S = 30.0  # how often we consider a proactive code review
 INTERJECTION_COOLDOWN_S = 45.0  # min gap between unprompted interjections
@@ -66,6 +67,9 @@ class InterviewState:
     last_interjection: float = field(default_factory=time.monotonic)
     hints_used: int = 0
     ended: bool = False
+    last_test_run: dict | None = None
+    test_runs: int = 0
+    last_test_reaction: float = 0.0
 
 
 def numbered(code: str) -> str:
@@ -74,6 +78,31 @@ def numbered(code: str) -> str:
         return "(the editor is currently empty)"
     lines = code.splitlines()
     return "\n".join(f"{i + 1:>3}| {line}" for i, line in enumerate(lines))
+
+
+def format_test_run(run: dict | None, total_runs: int = 0) -> str:
+    """Human-readable digest of the candidate's latest judge run."""
+    if not run:
+        return "The candidate never ran the built-in test cases."
+    if run.get("setupError"):
+        return (
+            f"Latest test run (run #{total_runs}) could not execute the code: "
+            f"{run['setupError']}"
+        )
+    lines = [
+        f"Latest test run (run #{total_runs}, {run.get('language', '?')}): "
+        f"{run.get('passed', 0)}/{run.get('total', 0)} cases passed."
+    ]
+    for failure in (run.get("failures") or [])[:4]:
+        label = failure.get("label", "?")
+        if failure.get("error"):
+            lines.append(f"- FAILED {label}: raised {failure['error']}")
+        else:
+            lines.append(
+                f"- FAILED {label}: expected {failure.get('expected')}, "
+                f"got {failure.get('got')}"
+            )
+    return "\n".join(lines)
 
 
 def significant_change(old: str, new: str) -> bool:
@@ -111,7 +140,8 @@ class Interviewer(Agent):
         """
         return (
             f"Editor language: {self._state.language}\n"
-            f"{numbered(self._state.code)}"
+            f"{numbered(self._state.code)}\n\n"
+            f"{format_test_run(self._state.last_test_run, self._state.test_runs)}"
         )
 
     @function_tool
@@ -294,6 +324,7 @@ async def entrypoint(ctx: JobContext) -> None:
             hints_used=state.hints_used,
             duration_min=duration_min,
             elapsed_min=elapsed_min,
+            test_summary=format_test_run(state.last_test_run, state.test_runs),
         )
         try:
             raw = await asyncio.to_thread(_generate_report_sync, prompt)
@@ -325,6 +356,24 @@ async def entrypoint(ctx: JobContext) -> None:
                 state.last_code_change = time.monotonic()
             state.code = new_code
             state.language = payload.get("language", state.language)
+        elif packet.topic == "test_results":
+            state.last_test_run = payload
+            state.test_runs += 1
+            now = time.monotonic()
+            if state.ended or now - state.last_test_reaction < TEST_REACTION_COOLDOWN_S:
+                return
+            state.last_test_reaction = now
+            state.last_interjection = now  # keep the watch loop from double-firing
+            all_passed = (
+                not payload.get("setupError")
+                and payload.get("total", 0) > 0
+                and payload.get("passed", -1) == payload.get("total", 0)
+            )
+            summary = format_test_run(payload, state.test_runs)
+            logger.info("test run: %s", summary.splitlines()[0])
+            session.generate_reply(
+                instructions=prompts.test_results_reaction(summary, all_passed)
+            )
         elif packet.topic == "control":
             kind = payload.get("type")
             if kind == "time_warning" and not state.ended:

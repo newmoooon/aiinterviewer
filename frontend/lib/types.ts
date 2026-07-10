@@ -39,5 +39,7 @@ export const HISTORY_KEY = "interviewlab_history";
 export const TOPIC_CODE_UPDATE = "code_update";
 export const TOPIC_CONTROL = "control";
 export const TOPIC_REPORT = "report";
+// Judge outcomes stream to Alex so the interviewer reacts to red/green tests.
+export const TOPIC_TEST_RESULTS = "test_results";
 // LiveKit's built-in text-stream topic for speech transcriptions.
 export const TOPIC_TRANSCRIPTION = "lk.transcription";
