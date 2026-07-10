@@ -19,6 +19,34 @@ export interface Problem {
 
 export const PROBLEMS: Problem[] = [
   {
+    id: "valid-parentheses",
+    title: "Valid Parentheses",
+    difficulty: "Easy",
+    topics: ["String", "Stack"],
+    statement: [
+      "Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.",
+      "An input string is valid if open brackets are closed by the same type of bracket, open brackets are closed in the correct order, and every close bracket has a corresponding open bracket of the same type.",
+    ],
+    examples: [
+      { input: 's = "()"', output: "true" },
+      { input: 's = "()[]{}"', output: "true" },
+      { input: 's = "(]"', output: "false" },
+      { input: 's = "([)]"', output: "false" },
+    ],
+    constraints: [
+      "1 <= s.length <= 10^4",
+      "s consists of parentheses only: '()[]{}'.",
+    ],
+    starterCode: {
+      python:
+        "class Solution:\n    def isValid(self, s: str) -> bool:\n        # Think out loud as you go!\n        pass\n",
+      javascript:
+        "/**\n * @param {string} s\n * @return {boolean}\n */\nfunction isValid(s) {\n  // Think out loud as you go!\n}\n",
+      typescript:
+        "function isValid(s: string): boolean {\n  // Think out loud as you go!\n  return false;\n}\n",
+    },
+  },
+  {
     id: "two-sum",
     title: "Two Sum",
     difficulty: "Easy",
@@ -119,6 +147,41 @@ export const PROBLEMS: Problem[] = [
         "/**\n * @param {character[][]} grid\n * @return {number}\n */\nfunction numIslands(grid) {\n}\n",
       typescript:
         "function numIslands(grid: string[][]): number {\n  return 0;\n}\n",
+    },
+  },
+  {
+    id: "merge-intervals",
+    title: "Merge Intervals",
+    difficulty: "Medium",
+    topics: ["Array", "Sorting"],
+    statement: [
+      "Given an array of intervals where intervals[i] = [start_i, end_i], merge all overlapping intervals.",
+      "Return an array of the non-overlapping intervals that cover all the intervals in the input, sorted by start.",
+    ],
+    examples: [
+      {
+        input: "intervals = [[1,3],[2,6],[8,10],[15,18]]",
+        output: "[[1,6],[8,10],[15,18]]",
+        explanation: "[1,3] and [2,6] overlap, so they merge into [1,6].",
+      },
+      {
+        input: "intervals = [[1,4],[4,5]]",
+        output: "[[1,5]]",
+        explanation: "Touching endpoints count as overlapping.",
+      },
+    ],
+    constraints: [
+      "1 <= intervals.length <= 10^4",
+      "intervals[i].length == 2",
+      "0 <= start_i <= end_i <= 10^4",
+    ],
+    starterCode: {
+      python:
+        "class Solution:\n    def merge(self, intervals: list[list[int]]) -> list[list[int]]:\n        # Think out loud as you go!\n        pass\n",
+      javascript:
+        "/**\n * @param {number[][]} intervals\n * @return {number[][]}\n */\nfunction merge(intervals) {\n  // Think out loud as you go!\n}\n",
+      typescript:
+        "function merge(intervals: number[][]): number[][] {\n  // Think out loud as you go!\n  return [];\n}\n",
     },
   },
   {

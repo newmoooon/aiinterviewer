@@ -150,6 +150,7 @@ export default function Home() {
               Clear history
             </button>
           </div>
+          {history.length >= 2 && <ScoreTrend history={history} />}
           <div className="flex flex-col gap-2">
             {history.map((h) => {
               const hired = h.report.decision === "HIRE";
@@ -192,5 +193,84 @@ export default function Home() {
         </section>
       )}
     </main>
+  );
+}
+
+/**
+ * Coding vs communication score across past sessions, oldest → newest —
+ * a lightweight inline SVG (no chart library) since the message is just
+ * "am I trending up?".
+ */
+function ScoreTrend({ history }: { history: HistoryEntry[] }) {
+  const entries = [...history].reverse(); // stored newest-first
+  const width = 560;
+  const height = 96;
+  const pad = 8;
+
+  const x = (i: number) =>
+    pad + (i * (width - pad * 2)) / Math.max(1, entries.length - 1);
+  const y = (score: number) => height - pad - (score / 100) * (height - pad * 2);
+  const line = (pick: (h: HistoryEntry) => number) =>
+    entries.map((h, i) => `${x(i)},${y(pick(h))}`).join(" ");
+
+  const avg = (pick: (h: HistoryEntry) => number) =>
+    Math.round(entries.reduce((sum, h) => sum + pick(h), 0) / entries.length);
+
+  return (
+    <div className="mb-4 rounded-xl border border-hairline bg-surface p-4">
+      <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+        <span className="font-semibold uppercase tracking-wider text-muted">
+          Score trend
+        </span>
+        <span className="text-sub">
+          <span className="mr-1 inline-block h-2 w-2 rounded-sm bg-accent" />
+          Coding · avg {avg((h) => h.report.codingScore)}
+        </span>
+        <span className="text-sub">
+          <span className="mr-1 inline-block h-2 w-2 rounded-sm bg-aqua" />
+          Communication · avg {avg((h) => h.report.communicationScore)}
+        </span>
+        <span className="ml-auto text-muted">
+          {entries.length} sessions, oldest → newest
+        </span>
+      </div>
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="h-24 w-full"
+        role="img"
+        aria-label="Coding and communication scores across past interviews"
+      >
+        <line
+          x1={pad}
+          x2={width - pad}
+          y1={y(50)}
+          y2={y(50)}
+          className="stroke-hairline"
+          strokeDasharray="4 4"
+        />
+        <polyline
+          points={line((h) => h.report.codingScore)}
+          fill="none"
+          className="stroke-accent"
+          strokeWidth="2"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        <polyline
+          points={line((h) => h.report.communicationScore)}
+          fill="none"
+          className="stroke-aqua"
+          strokeWidth="2"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {entries.map((h, i) => (
+          <g key={h.id}>
+            <circle cx={x(i)} cy={y(h.report.codingScore)} r="2.5" className="fill-accent" />
+            <circle cx={x(i)} cy={y(h.report.communicationScore)} r="2.5" className="fill-aqua" />
+          </g>
+        ))}
+      </svg>
+    </div>
   );
 }

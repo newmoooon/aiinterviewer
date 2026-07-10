@@ -9,6 +9,44 @@ revealed to the candidate.
 DEFAULT_PROBLEM_ID = "two-sum"
 
 PROBLEMS: dict[str, dict[str, str]] = {
+    "valid-parentheses": {
+        "title": "Valid Parentheses",
+        "difficulty": "Easy",
+        "summary": (
+            "Given a string of only '()[]{}', return whether the brackets are valid: "
+            "every open bracket is closed by the same type, in the correct order."
+        ),
+        "optimal": (
+            "Single pass with a stack: push open brackets, and on a close bracket "
+            "check the top of the stack matches; valid iff the stack is empty at the "
+            "end. O(n) time, O(n) space."
+        ),
+        "pitfalls": (
+            "Popping from an empty stack on a leading close bracket like ')('; "
+            "forgetting the final stack-empty check for unclosed brackets like '('; "
+            "only counting bracket totals (fails '([)]'); slow repeated string "
+            "replacement of '()' pairs instead of a stack."
+        ),
+    },
+    "merge-intervals": {
+        "title": "Merge Intervals",
+        "difficulty": "Medium",
+        "summary": (
+            "Given an array of [start, end] intervals, merge all overlapping "
+            "intervals and return the non-overlapping result sorted by start."
+        ),
+        "optimal": (
+            "Sort by start, then sweep once: extend the current merged interval "
+            "while the next start <= current end, otherwise emit and restart. "
+            "O(n log n) time for the sort, O(n) space for the output."
+        ),
+        "pitfalls": (
+            "Forgetting to sort first (fails unsorted input); using < instead of <= "
+            "so touching intervals like [1,4],[4,5] don't merge; not taking "
+            "max(current end, next end) for contained intervals like [1,10],[2,3]; "
+            "mutating the input while iterating over it."
+        ),
+    },
     "two-sum": {
         "title": "Two Sum",
         "difficulty": "Easy",

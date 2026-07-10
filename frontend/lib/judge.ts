@@ -49,6 +49,48 @@ export interface TestRunSummary {
 }
 
 export const JUDGES: Record<string, JudgeSpec> = {
+  "valid-parentheses": {
+    kind: "function",
+    entry: "isValid",
+    checker: "exact",
+    cases: [
+      { label: 's="()"', input: ["()"], expected: true },
+      { label: 's="()[]{}"', input: ["()[]{}"], expected: true },
+      { label: 'mismatched type: s="(]"', input: ["(]"], expected: false },
+      { label: 'interleaved: s="([)]"', input: ["([)]"], expected: false },
+      { label: 'nested: s="{[]}"', input: ["{[]}"], expected: true },
+      { label: 'unclosed: s="("', input: ["("], expected: false },
+      { label: 'close first: s=")("', input: [")("], expected: false },
+    ],
+  },
+  "merge-intervals": {
+    kind: "function",
+    entry: "merge",
+    checker: "exact",
+    cases: [
+      {
+        label: "[[1,3],[2,6],[8,10],[15,18]]",
+        input: [[[1, 3], [2, 6], [8, 10], [15, 18]]],
+        expected: [[1, 6], [8, 10], [15, 18]],
+      },
+      {
+        label: "touching endpoints: [[1,4],[4,5]]",
+        input: [[[1, 4], [4, 5]]],
+        expected: [[1, 5]],
+      },
+      {
+        label: "unsorted input: [[5,6],[1,3],[2,4]]",
+        input: [[[5, 6], [1, 3], [2, 4]]],
+        expected: [[1, 4], [5, 6]],
+      },
+      { label: "single interval", input: [[[1, 4]]], expected: [[1, 4]] },
+      {
+        label: "contained interval: [[1,10],[2,3]]",
+        input: [[[1, 10], [2, 3]]],
+        expected: [[1, 10]],
+      },
+    ],
+  },
   "two-sum": {
     kind: "function",
     entry: "twoSum",
