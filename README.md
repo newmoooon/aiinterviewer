@@ -7,6 +7,16 @@ that reads your code as you type, listens to you think out loud, interrupts with
 targeted engineering questions, nudges you when you stall, warns you at the
 5-minute mark, and hands you a hire/no-hire scoring packet when time runs out.
 
+You can also **run real test cases inside the interview** — and Alex sees the
+results. Code executes entirely in your browser (no server, no containers):
+Python on Pyodide (CPython compiled to WebAssembly), JavaScript in a sandboxed
+Web Worker with an infinite-loop timeout, TypeScript type-stripped with Sucrase
+onto the same Worker path. Judge verdicts use real checkers (either index order
+for Two Sum, any valid palindrome, LRU operation sequences), a pass/fail digest
+streams to Alex over a `test_results` data topic so the interviewer reacts to
+red or green runs, and the final report grades against actual test execution —
+not just a read of your code.
+
 **100% free-tier infrastructure — no credit card anywhere:**
 
 | Layer | Service | Free tier |
@@ -100,6 +110,11 @@ hire/no-hire decision, and specific improvement areas.
 
 Voice replies stay under three sentences, use natural fillers, never read code
 aloud, and stop instantly when you interrupt (barge-in is native to Gemini Live).
+
+5. **Test runs** — click **▸ Run tests** any time. All passing and Alex raises
+   the bar (complexity, nastier edge cases); failures get one nudge toward the
+   pattern in the failing cases — never the bug or the fix. Your latest run also
+   feeds the final report's coding score.
 
 ## Config knobs
 
