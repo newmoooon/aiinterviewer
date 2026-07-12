@@ -127,6 +127,31 @@ aloud, and stop instantly when you interrupt (barge-in is native to Gemini Live)
 Timing rules (silence threshold, interjection cooldowns) are constants at the
 top of `agent/interviewer.py`.
 
+## Deploy a permanent free demo (no laptop required)
+
+Both halves have a free hosted home:
+
+**1. Agent → LiveKit Cloud** (the free Build plan includes agent hosting and
+1,000 agent minutes/month):
+
+```bash
+brew install livekit-cli        # once
+lk cloud auth                   # opens the browser, link your LiveKit project
+cd agent
+lk agent create --secrets-file .env   # builds the Dockerfile, deploys, sets GOOGLE_API_KEY
+```
+
+From then on the interviewer worker runs 24/7 on LiveKit's infrastructure —
+`lk agent status` / `lk agent logs` to observe it, `lk agent deploy` to ship
+updates.
+
+**2. Frontend → Vercel:** import the repo at <https://vercel.com/new> with
+**Root Directory = `frontend`**, and set three environment variables from
+`frontend/.env.local`: `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`.
+
+Send anyone the Vercel URL — they pick a problem, allow the mic, and the
+cloud-hosted Alex joins their room.
+
 ## Troubleshooting
 
 - **"Waiting for interviewer…" never resolves** → the agent worker isn't
